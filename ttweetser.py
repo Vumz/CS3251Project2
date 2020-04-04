@@ -1,7 +1,10 @@
 import socket, threading
 import sys
 
-timeline = {}
+TIMELINE = {
+    '#tag1': 'tweet1'
+}
+HASHTAGS = []
 
 class ClientThread(threading.Thread):
     def __init__(self, clientAddress, clientSocket):
@@ -11,15 +14,17 @@ class ClientThread(threading.Thread):
     def run(self):
         print ("Connection from : ", clientAddress)
         #self.clientSocket.send(bytes("Hi, This is from Server..",'utf-8'))
-        msg = ''
+        clientMessage = ''
         while True:
             data = self.clientSocket.recv(2048)
-            msg = data.decode()
-            if msg=='bye':
+            clientMessage = data.decode()
+            if clientMessage == 'subscribe':
+                print('server subscribing')
+            if clientMessage == 'exit':
               break
-            print ("from client", msg)
-            self.clientSocket.send(bytes(msg,'UTF-8'))
-        print ("Client at ", clientAddress , " disconnected...")
+            print ("(client)", clientMessage)
+            self.clientSocket.send(bytes(clientMessage, 'UTF-8'))
+        print ("Client at ", clientAddress, " disconnected...")
 LOCALHOST = "127.0.0.1"
 PORT = int(sys.argv[1])
 server = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
