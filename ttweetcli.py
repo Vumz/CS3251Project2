@@ -1,6 +1,14 @@
 import socket
 import sys
 
+HASHTAGS = []
+
+def subscribe(hashtag):
+  if len(HASHTAGS) >= 3:
+    print('operation failed: sub',  hashtag, 'failed, already exists or exceeds 3 limitation')
+  else:
+    print("subscribing", hashtag)
+
 SERVER = sys.argv[1]
 PORT = int(sys.argv[2])
 USERNAME = sys.argv[3]
@@ -9,9 +17,11 @@ client.connect((SERVER, PORT))
 client.sendall(bytes(USERNAME,'UTF-8'))
 while True:
   in_data =  client.recv(1024)
-  print("From Server :" ,in_data.decode())
-  out_data = input()
-  client.sendall(bytes(out_data,'UTF-8'))
-  if out_data=='bye':
+  print("From Server :", in_data.decode())
+  user_input = input()
+  client.sendall(bytes(user_input, 'UTF-8'))
+  if user_input == 'subscribe':
+    subscribe('test')
+  if user_input=='bye':
     break
 client.close()
