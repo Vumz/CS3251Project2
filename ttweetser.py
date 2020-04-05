@@ -1,16 +1,20 @@
 import socket, threading
 import sys
+import shlex
 
 TIMELINE = {
-    '#tag1': ['tweet1']
+    '#tag1': [('sender', 'tweet1'), ('sender2', 'tweet2')],
+    '#tag2': [('s1', 't1'), ('s2', 't2')]
 }
 HASHTAGS = {
     'will': ['#tag1']
 }
 
 def subscribe(username, hashtag):
+    if username not in HASHTAGS:
+        HASHTAGS[username] = []
     if len(HASHTAGS[username]) >= 3 or hashtag in HASHTAGS[username]:
-        print('operation failed: sub',  hashtag, 'failed, already exists or exceeds 3 limitation')
+        print('operation failed: sub', hashtag, 'failed, already exists or exceeds 3 limitation')
     else:
         print("subscribing", hashtag)
         HASHTAGS[username].append(hashtag)
@@ -22,6 +26,31 @@ def unsubscribe(username, hashtag):
         HASHTAGS[username].remove(hashtag)
         print(HASHTAGS)
 
+def timeline(username):
+    if username not in HASHTAGS:
+        return
+    subscriptions = HASHTAGS[username]
+    timeline = []
+    if '#ALL' in subscriptions:
+        for tag in TIMELINE.keys():
+            tweets = TIMELINE[tag]
+            for tweet in tweets:
+                sender, message = tweet
+                timeline.append(format_tweet(sender, message, tag))
+    else:
+        for sub in subscriptions:
+            if sub in TIMELINE:
+                for tag in TIMELINE.keys():
+                    tweets = TIMELINE[tag]
+                    for tweet in tweets:
+                        sender, message = tweet
+                        timeline.append(format_tweet(sender, message, tag))
+
+    return timeline
+    
+
+def format_tweet(sender, message, hashtag):
+    return sender + ': "' + message + '" ' + hashtag + '\n'
 
 class ClientThread(threading.Thread):
     def __init__(self, clientAddress, clientSocket):
@@ -34,21 +63,24 @@ class ClientThread(threading.Thread):
         while True:
             data = self.clientSocket.recv(2048)
             clientMessage = data.decode()
-            if 'unsubscribe' in clientMessage:
+            messageSplit = clientMessage.split()
+            if 'unsubscribe' == messageSplit[0]:
                 print('server unsubscribing')
-                name_index = clientMessage.index(',') + 1
-                tag_index = clientMessage.index('#')
-                username = clientMessage[name_index:tag_index - 1]
-                hashtag = clientMessage[tag_index:]
+                username = messageSplit[1]
+                hashtag = messageSplit[2]
                 unsubscribe(username, hashtag)
-            elif 'subscribe' in clientMessage:
+            elif 'subscribe' == messageSplit[0]:
                 print('server subscribing')
-                name_index = clientMessage.index(',') + 1
-                tag_index = clientMessage.index('#')
-                username = clientMessage[name_index:tag_index - 1]
-                hashtag = clientMessage[tag_index:]
+                username = messageSplit[1]
+                hashtag = messageSplit[2]
                 subscribe(username, hashtag)
-            if clientMessage == 'exit':
+            elif 'timeline' == messageSplit[0]:
+                username = messageSplit[1]
+                user_timeline = timeline(username)
+                clientMessage = ''
+                for tweet in user_timeline:
+                    self.clientSocket.send(bytes(tweet, 'UTF-8'))
+            elif clientMessage == 'exit':
                 break
             print("(client)", clientMessage)
             self.clientSocket.send(bytes(clientMessage, 'UTF-8'))
