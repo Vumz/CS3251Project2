@@ -1,5 +1,7 @@
-import socket, threading
+import socket
+import threading
 import sys
+import time
 
 TIMELINE = {
     '#tag1': ['tweet1']
@@ -8,16 +10,16 @@ HASHTAGS = {
     'will': ['#tag1']
 }
 TWEETS = {
-    'vamsee': ['test #tag2']
+    #'vamsee': ['test #tag2']
 }
 TIMELINES = {
-    'vamsee': ['test #tag2']
+    #'vamsee': ['test #tag2']
 }
 HASHTAGMAP = {
-    '#tag1': ['will']
+    #'#tag1': ['vamsee']
 }
 USERS = {
-    'vamsee': []
+    #'vamsee': []
 }
 
 def subscribe(username, hashtag):
@@ -47,12 +49,15 @@ class ClientThread(threading.Thread):
         while True:
             # send any tweets queued for the user
             if user in USERS and len(USERS[user]) > 0:
-                self.clientSocket.sendall(bytes(USERS[user], 'UTF-8'))
+                self.clientSocket.sendall(bytes(USERS[user][0], 'UTF-8'))
                 del USERS[user][0]
             data = self.clientSocket.recv(2048)
             clientMessage = data.decode()
             messageSplit = clientMessage.split()
+            if messageSplit == []:
+                messageSplit.append('none')
             # register user
+            print(messageSplit)
             if 'username' == messageSplit[0]:
                 if messageSplit[1] not in USERS:
                     user = messageSplit[1]
@@ -60,7 +65,7 @@ class ClientThread(threading.Thread):
                     TWEETS[user] = []
                     self.clientSocket.sendall(bytes('username legal, connection established.','UTF-8'))
                 else:
-                    self.clientSocket.sendall(bytes('error: username has wrong format, connection refused.'))
+                    self.clientSocket.sendall(bytes('error: username has wrong format, connection refused.', 'UTF-8'))
             # tweet functionality
             elif 'tweet' == messageSplit[0]:
                 TWEETS[user].append(messageSplit[1] + ' ' + messageSplit[2])
@@ -88,11 +93,23 @@ class ClientThread(threading.Thread):
                         self.clientSocket.sendall(bytes(tweet, 'UTF-8'))
                 else:
                     self.clientSocket.sendall(bytes(('no user ' + username + ' in the system'), 'UTF-8'))
+            # timeline functionality
+            elif 'timeline' == messageSplit[0]:
+                for tweet in TIMELINES[user]:
+                    self.clientSocket.sendall(bytes(tweet, 'UTF-8'))
             # exit functionality
             elif clientMessage == 'exit':
-                del USERS[user]
-                del TWEETS[user]
-                del HASHTAGS[user]
+                if user in USERS:
+                    del USERS[user]
+                if user in TWEETS:
+                    del TWEETS[user]
+                if user in HASHTAGS:
+                    del HASHTAGS[user]
+                if user in TIMELINES:
+                    del TIMELINES[user]
+                for key, value in HASHTAGMAP.items():
+                    if user in value:
+                        value.remove(user)
                 self.clientSocket.sendall(bytes('bye bye', 'UTF-8'))
                 break
             if 'unsubscribe' in clientMessage:
