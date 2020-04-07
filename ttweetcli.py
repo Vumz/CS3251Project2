@@ -99,19 +99,19 @@ while True:
             break
         else:
             print('incorrect amount of arguments for exit command')
-    if 'unsubscribe' in user_input:
-        if '#' in user_input:
-            start = user_input.index('#')
-            hashtag = user_input[start:]
-            client_message = 'unsubscribe,' + USERNAME + ',' + hashtag
+    # unsubscribe functionality
+    elif 'unsubscribe' == inputSplit[0]:
+        if len(inputSplit) == 2 and inputSplit[1][0] == '#':
+            hashtag = inputSplit[1]
+            client_message = 'unsubscribe ' + USERNAME + ' ' + hashtag
             client.sendall(bytes(client_message, 'UTF-8'))
         else:
             client.sendall(bytes('none', 'UTF-8'))
-    elif 'subscribe' in user_input:
-        if '#' in user_input:
-            start = user_input.index('#')
-            hashtag = user_input[start:]
-            client_message = 'subscribe,' + USERNAME + ',' + hashtag
+    # subscribe functionality
+    elif 'subscribe' == inputSplit[0]:
+        if len(inputSplit) == 2 and inputSplit[1][0] == '#':
+            hashtag = inputSplit[1]
+            client_message = 'subscribe ' + USERNAME + ' ' + hashtag
             client.sendall(bytes(client_message, 'UTF-8'))
         else:
             client.sendall(bytes('none', 'UTF-8'))

@@ -3,11 +3,8 @@ import threading
 import sys
 import time
 
-TIMELINE = {
-    '#tag1': ['tweet1']
-}
 HASHTAGS = {
-    'will': ['#tag1']
+    # 'will': ['#tag1']
 }
 TWEETS = {
     #'vamsee': ['test #tag2']
@@ -23,18 +20,27 @@ USERS = {
 }
 
 def subscribe(username, hashtag):
-    if len(HASHTAGS[username]) >= 3 or hashtag in HASHTAGS[username]:
+    if username not in HASHTAGS:
+        HASHTAGS[username] = []
+    if len(HASHTAGS[username]) > 2 or hashtag in HASHTAGS[username]:
         print('operation failed: sub',  hashtag, 'failed, already exists or exceeds 3 limitation')
     else:
         print("subscribing", hashtag)
         HASHTAGS[username].append(hashtag)
+        if hashtag not in HASHTAGMAP:
+            HASHTAGMAP[hashtag] = []
+        HASHTAGMAP[hashtag].append(username)
         print(HASHTAGS)
+        print(HASHTAGMAP)
 
 def unsubscribe(username, hashtag):
     if hashtag in HASHTAGS[username]:
         print("unsubscribing", hashtag)
         HASHTAGS[username].remove(hashtag)
         print(HASHTAGS)
+    if username in HASHTAGMAP[hashtag]:
+        HASHTAGMAP[hashtag].remove(username)
+        print(HASHTAGMAP)
 
 
 class ClientThread(threading.Thread):
@@ -112,20 +118,19 @@ class ClientThread(threading.Thread):
                         value.remove(user)
                 self.clientSocket.sendall(bytes('bye bye', 'UTF-8'))
                 break
-            if 'unsubscribe' in clientMessage:
+            # unsubscribe functionality
+            elif 'unsubscribe' == messageSplit[0]:
                 print('server unsubscribing')
-                name_index = clientMessage.index(',') + 1
-                tag_index = clientMessage.index('#')
-                username = clientMessage[name_index:tag_index - 1]
-                hashtag = clientMessage[tag_index:]
+                username = messageSplit[1]
+                hashtag = messageSplit[2]
                 unsubscribe(username, hashtag)
-            elif 'subscribe' in clientMessage:
+            # subscribe functionality
+            elif 'subscribe' == messageSplit[0]:
                 print('server subscribing')
-                name_index = clientMessage.index(',') + 1
-                tag_index = clientMessage.index('#')
-                username = clientMessage[name_index:tag_index - 1]
-                hashtag = clientMessage[tag_index:]
+                username = messageSplit[1]
+                hashtag = messageSplit[2]
                 subscribe(username, hashtag)
+
             print("(client)", clientMessage)
             # self.clientSocket.send(bytes(clientMessage, 'UTF-8'))
         print("Client at ", clientAddress, " disconnected...")
