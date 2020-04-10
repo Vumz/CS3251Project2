@@ -2,6 +2,7 @@ import socket
 import threading
 import sys
 import time
+import shlex
 
 TIMELINE = {
     #'#tag1': ['tweet1']
@@ -48,7 +49,7 @@ class ClientThread(threading.Thread):
                 clientMessage = 'exit'
             else:
                 clientMessage = data.decode()
-            messageSplit = clientMessage.split()
+            messageSplit = shlex.split(clientMessage, posix=False)
             if messageSplit == []:
                 messageSplit.append('none')
             # register user
