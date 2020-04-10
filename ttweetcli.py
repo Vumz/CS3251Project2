@@ -6,15 +6,28 @@ import time
 import os
 
 def printServer(client):
+    client.setblocking(0)
     while True:
-        server_data =  client.recv(1024)
+        try:
+            server_data =  client.recv(1024)
+        except  socket.error as ex:
+            continue
+        if len(server_data) == 0:
+            client.close()
+            os._exit(os.EX_OK)
         server_message = server_data.decode()
         print(server_message)
         # exit if error message recieved from server
         if 'error' == server_message[:5]:
             client.sendall(bytes('exit', 'UTF-8'))
+            time.sleep(0.5)
             client.close()
             os._exit(os.EX_OK)
+
+# def flushBuffer(client):
+#     while True:
+#         client.sendall(bytes('none', 'UTF-8'))
+#         time.sleep(0.5)
 
 # check for the inital correct amount of arguments
 if len(sys.argv) != 4:
@@ -36,12 +49,16 @@ for unit in unitsIP:
 if PORT < 1024 or PORT > 65535:
     print('error: server port invalid, connection refused.')
     sys.exit()
+# check if username is valid
+if USERNAME == '':
+    print('error: username has wrong format, connection refused.')
+    sys.exit()
 # try initiating a connection with the server
 client = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 try:
     client.connect((SERVER, PORT))
 except:
-    print('error: server port invalid, connection refused.')
+    print('connection error, please check your server: Connection refused')
     client.close()
     sys.exit()
 client.sendall(bytes('username ' + USERNAME,'UTF-8'))
@@ -49,6 +66,10 @@ client.sendall(bytes('username ' + USERNAME,'UTF-8'))
 inputThread = threading.Thread(target=printServer, args=(client,))
 inputThread.daemon = True
 inputThread.start()
+
+# flushThread = threading.Thread(target=flushBuffer, args=(client,))
+# flushThread.daemon = True
+# flushThread.start()
 
 while True:
     user_input = input()
@@ -68,11 +89,8 @@ while True:
                 for tag in hashtags[1:]:
                     if tag.isalnum() == False:
                         print('hashtag illegal format, connection refused.')
-                        exit = True 
-        if exit:
-            client.sendall(bytes('exit', 'UTF-8'))
-            break
-        else:
+                        exit = True
+        if exit == False:
             client.sendall(bytes(user_input, 'UTF-8'))
     # getusers functionality
     elif 'getusers' == inputSplit[0]:
@@ -99,21 +117,22 @@ while True:
             break
         else:
             print('incorrect amount of arguments for exit command')
-    if 'unsubscribe' in user_input:
-        if '#' in user_input:
-            start = user_input.index('#')
-            hashtag = user_input[start:]
-            client_message = 'unsubscribe,' + USERNAME + ',' + hashtag
+    # unsubscribe functionality
+    elif 'unsubscribe' == inputSplit[0]:
+        if len(inputSplit) == 2 and inputSplit[1][0] == '#':
+            hashtag = inputSplit[1]
+            client_message = 'unsubscribe ' + USERNAME + ' ' + hashtag
             client.sendall(bytes(client_message, 'UTF-8'))
         else:
             client.sendall(bytes('none', 'UTF-8'))
-    elif 'subscribe' in user_input:
-        if '#' in user_input:
-            start = user_input.index('#')
-            hashtag = user_input[start:]
-            client_message = 'subscribe,' + USERNAME + ',' + hashtag
+    # subscribe functionality
+    elif 'subscribe' == inputSplit[0]:
+        if len(inputSplit) == 2 and inputSplit[1][0] == '#':
+            hashtag = inputSplit[1]
+            client_message = 'subscribe ' + USERNAME + ' ' + hashtag
             client.sendall(bytes(client_message, 'UTF-8'))
         else:
             client.sendall(bytes('none', 'UTF-8'))
+time.sleep(0.5)
 client.close()
 sys.exit()
