@@ -61,44 +61,51 @@ class ClientThread(threading.Thread):
                     TIMELINES[user] = []
                     self.clientSocket.sendall(bytes('username legal, connection established.','UTF-8'))
                 else:
-                    self.clientSocket.sendall(bytes('error: username has wrong format, connection refused.', 'UTF-8'))
+                    self.clientSocket.sendall(bytes('username illegal, connection refused.', 'UTF-8'))
             # tweet functionality
             elif 'tweet' == messageSplit[0]:
                 TWEETS[user].append(user + ': ' + messageSplit[1] + ' ' + messageSplit[2])
                 hashtags = messageSplit[2].split('#')
+                users_subscribed = set()
                 for tag in hashtags[1:]:
                     fullTag = '#' + tag
                     if fullTag in HASHTAGMAP:
-                        users_subscribed = HASHTAGMAP[fullTag]
-                        if '#ALL' in HASHTAGMAP:
-                            for u in HASHTAGMAP['#ALL']:
-                                if u not in users_subscribed:
-                                    users_subscribed.append(u)
-                        for account in users_subscribed:
-                            # add tweet to associated timelines
-                            if account in TIMELINES:
-                                TIMELINES[account].append(user + ': ' + messageSplit[1] + ' ' + messageSplit[2])
-                            else:
-                                TIMELINES[account] = [user + ': ' + messageSplit[1] + ' ' + messageSplit[2]]
-                            # send tweet to whoever is subscribed to hashtags
-                            if account in USERS:
-                                USERS[account].append(user + ' ' + messageSplit[1] + ' ' + messageSplit[2])
+                        for u in HASHTAGMAP[fullTag]:
+                            users_subscribed.add(u)
+                if '#ALL' in HASHTAGMAP:
+                    for u in HASHTAGMAP['#ALL']:
+                            users_subscribed.add(u)
+                for account in users_subscribed:
+                    # add tweet to associated timelines
+                    if account in TIMELINES:
+                        TIMELINES[account].append(user + ': ' + messageSplit[1] + ' ' + messageSplit[2])
+                    else:
+                        TIMELINES[account] = [user + ': ' + messageSplit[1] + ' ' + messageSplit[2]]
+                    # send tweet to whoever is subscribed to hashtags
+                    if account in USERS:
+                        USERS[account].append(user + ' ' + messageSplit[1] + ' ' + messageSplit[2])
             # getusers functionality
             elif 'getusers' == messageSplit[0]:
+                payload = ''
                 for username in USERS:
-                    self.clientSocket.sendall(bytes(username + '\n', 'UTF-8'))
+                    payload = payload + username + '\n'
+                self.clientSocket.sendall(bytes(payload[:-1], 'UTF-8'))
             # gettweets functionality
             elif 'gettweets' == messageSplit[0]:
                 username = messageSplit[1]
                 if username in USERS:
+                    payload = ''
                     for tweet in TWEETS[username]:
-                        self.clientSocket.sendall(bytes(tweet + '\n', 'UTF-8'))
+                        payload = payload + tweet + '\n'
+                    self.clientSocket.sendall(bytes(payload[:-1], 'UTF-8'))
                 else:
                     self.clientSocket.sendall(bytes(('no user ' + username + ' in the system'), 'UTF-8'))
             # timeline functionality
             elif 'timeline' == messageSplit[0]:
+                payload = ''
                 for tweet in TIMELINES[user]:
-                    self.clientSocket.sendall(bytes(tweet + '\n', 'UTF-8'))
+                    payload = payload + tweet + '\n'
+                self.clientSocket.sendall(bytes(payload[:-1], 'UTF-8'))
             # exit functionality
             elif clientMessage == 'exit':
                 if user in USERS:
@@ -127,6 +134,7 @@ class ClientThread(threading.Thread):
                 if username in HASHTAGMAP[hashtag]:
                     HASHTAGMAP[hashtag].remove(username)
                     print(HASHTAGMAP)
+                self.clientSocket.sendall(bytes('operation success', 'UTF-8'))
             # subscribe functionality
             elif 'subscribe' == messageSplit[0]:
                 print('server subscribing')
@@ -145,8 +153,6 @@ class ClientThread(threading.Thread):
                     HASHTAGMAP[hashtag].append(username)
                     print(HASHTAGS)
                     print(HASHTAGMAP)
-            # print("(client)", clientMessage)
-            # self.clientSocket.send(bytes(clientMessage, 'UTF-8'))
         print("Client at ", clientAddress, " disconnected...")
 LOCALHOST = "127.0.0.1"
 PORT = int(sys.argv[1])

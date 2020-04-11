@@ -9,7 +9,7 @@ def printServer(client):
     client.setblocking(0)
     while True:
         try:
-            server_data =  client.recv(1024)
+            server_data =  client.recv(16384)
         except  socket.error as ex:
             continue
         if len(server_data) == 0:
@@ -18,20 +18,15 @@ def printServer(client):
         server_message = server_data.decode()
         print(server_message)
         # exit if error message recieved from server
-        if 'error' == server_message[:5]:
+        if 'username illegal, connection refused.' == server_message:
             client.sendall(bytes('exit', 'UTF-8'))
             time.sleep(0.5)
             client.close()
             os._exit(os.EX_OK)
 
-# def flushBuffer(client):
-#     while True:
-#         client.sendall(bytes('none', 'UTF-8'))
-#         time.sleep(0.5)
-
 # check for the inital correct amount of arguments
 if len(sys.argv) != 4:
-    print('error: args should contain <ServerIP> <ServerPort> <Username>')
+    print('error: args should contain <ServerIP>   <ServerPort>   <Username>')
     sys.exit()
 SERVER = sys.argv[1]
 PORT = int(sys.argv[2])
@@ -50,7 +45,7 @@ if PORT < 1024 or PORT > 65535:
     print('error: server port invalid, connection refused.')
     sys.exit()
 # check if username is valid
-if USERNAME == '':
+if USERNAME.isalnum() == False:
     print('error: username has wrong format, connection refused.')
     sys.exit()
 # try initiating a connection with the server
@@ -66,10 +61,6 @@ client.sendall(bytes('username ' + USERNAME,'UTF-8'))
 inputThread = threading.Thread(target=printServer, args=(client,))
 inputThread.daemon = True
 inputThread.start()
-
-# flushThread = threading.Thread(target=flushBuffer, args=(client,))
-# flushThread.daemon = True
-# flushThread.start()
 
 while True:
     user_input = input()

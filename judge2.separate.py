@@ -34,15 +34,15 @@ class judge:
             os.remove('client.txt')
         if (os.path.exists('server.txt')):
             os.remove('server.txt')
-        self.file = open('client.txt', 'xt')
+        self.file = open('out/client.txt', 'xt')
 
-        self.server = open('server.txt', 'xt')
+        self.server = open('out/server.txt', 'xt')
         self.clients = {}
 
     def get_client_output(self, username):
         # return self.file
         username = str(username)
-        self.clients[username] = open(username+'.client.txt', 'xt')
+        self.clients[username] = open('out/'+username+'.client.txt', 'xt')
         return self.clients[username]
 
     def get_msg(self):
@@ -292,7 +292,7 @@ class judge:
         try:
             p.stdin.write(cmd.encode())
             p.stdin.flush()
-            time.sleep(0.1)
+            time.sleep(1)
         except Exception as e:
             print(e)
             self.file.write('error happens\n')
